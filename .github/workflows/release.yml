@@ -50,15 +50,21 @@ jobs:
         run: |
           brew install openssl
           echo "OPENSSL_DIR=$(brew --prefix openssl)" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$(brew --prefix openssl)/lib/pkgconfig" >> $GITHUB_ENV
       
       - name: Install Dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev build-essential
+          sudo apt-get install -y \
+            pkg-config \
+            libssl-dev \
+            build-essential
       
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
+        env:
+          RUSTFLAGS: ${{ matrix.os == 'windows-latest' && '-C target-feature=+crt-static' || '' }}
       
       - name: Package (Unix)
         if: matrix.os != 'windows-latest'
@@ -85,9 +91,9 @@ jobs:
           if [ -f "${{ matrix.artifact }}" ]; then
             echo "📦 Generating checksum for ${{ matrix.artifact }}..."
             if [[ "${{ runner.os }}" == "Windows" ]]; then
-              certutil -hashfile ${{ matrix.artifact }} SHA256 | findstr /v "SHA256" | findstr /v "CertUtil" >> checksums.txt
+              pwsh -Command "Get-FileHash -Algorithm SHA256 '${{ matrix.artifact }}' | ForEach-Object { '{0}  {1}' -f $_.Hash.ToLower(), '${{ matrix.artifact }}' }" >> checksums.txt
             else
-              shasum -a 256 ${{ matrix.artifact }} >> checksums.txt
+              shasum -a 256 "${{ matrix.artifact }}" >> checksums.txt
             fi
             echo "✅ Checksum generated"
           else
@@ -114,11 +120,21 @@ jobs:
         with:
           path: artifacts
       
+      - name: List Artifacts
+        run: |
+          echo "📦 Downloaded artifacts:"
+          ls -la artifacts/
+          find artifacts/ -type f -name "*.tar.gz" -o -name "*.zip" -o -name "checksums.txt" | while read f; do
+            echo "  - $f"
+          done
+      
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: artifacts/**/*
           generate_release_notes: true
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -136,7 +152,7 @@ jobs:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
       
-      - name: Publish
+      - name: Publish to NPM
         run: |
           cd packages/npm
           npm ci
