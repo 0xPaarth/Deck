@@ -1,5 +1,5 @@
 {
-  "name": "deck",
+  "name": "@0xpaarth/deck",
   "version": "0.1.0",
   "description": "Terminal-first competitive programming platform with Neovim integration, Git sync, and team collaboration",
   "bin": {
