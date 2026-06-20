@@ -86,21 +86,32 @@ jobs:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}
       
-      - name: Generate Checksum
+      - name: Generate Checksum (Unix)
+        if: runner.os != 'Windows'
         run: |
           if [ -f "${{ matrix.artifact }}" ]; then
             echo "📦 Generating checksum for ${{ matrix.artifact }}..."
-            if [[ "${{ runner.os }}" == "Windows" ]]; then
-              pwsh -Command "Get-FileHash -Algorithm SHA256 '${{ matrix.artifact }}' | ForEach-Object { '{0}  {1}' -f $_.Hash.ToLower(), '${{ matrix.artifact }}' }" >> checksums.txt
-            else
-              shasum -a 256 "${{ matrix.artifact }}" >> checksums.txt
-            fi
+            shasum -a 256 "${{ matrix.artifact }}" >> checksums.txt
             echo "✅ Checksum generated"
           else
             echo "⚠️ Artifact ${{ matrix.artifact }} not found"
             exit 1
           fi
         shell: bash
+      
+      - name: Generate Checksum (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          if (Test-Path "${{ matrix.artifact }}") {
+            Write-Host "📦 Generating checksum for ${{ matrix.artifact }}..."
+            $hash = Get-FileHash -Algorithm SHA256 "${{ matrix.artifact }}"
+            "$($hash.Hash.ToLower())  ${{ matrix.artifact }}" | Out-File -Append checksums.txt
+            Write-Host "✅ Checksum generated"
+          } else {
+            Write-Host "⚠️ Artifact ${{ matrix.artifact }} not found"
+            exit 1
+          }
+        shell: pwsh
       
       - name: Upload Checksum
         uses: actions/upload-artifact@v4
@@ -124,7 +135,7 @@ jobs:
         run: |
           echo "📦 Downloaded artifacts:"
           ls -la artifacts/
-          find artifacts/ -type f -name "*.tar.gz" -o -name "*.zip" -o -name "checksums.txt" | while read f; do
+          find artifacts/ -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "checksums.txt" \) | while read f; do
             echo "  - $f"
           done
       
