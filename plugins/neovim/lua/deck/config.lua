@@ -1,7 +1,7 @@
 local M = {}
 
 M.defaults = {
-  socket_path = vim.fn.expand("~/.cache/deck/socket"),
+  socket_path = "127.0.0.1:4647",
   default_language = "cpp",
   statement_width = 0.35,
   keymaps = {

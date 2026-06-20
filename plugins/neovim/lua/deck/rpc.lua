@@ -2,7 +2,7 @@ local M = {}
 
 local uv = vim.uv or vim.loop
 local config = require("deck.config")
-local client_pipe = nil
+local client_handle = nil
 local pending = {}
 local buf = ""
 local next_id = 1
@@ -26,20 +26,27 @@ local function parseBufferedResponses()
   end
 end
 
+local function parseHostPort(addr)
+  local host, port = addr:match("^(.+):(%d+)$")
+  if host and port then
+    return host, tonumber(port)
+  end
+  return nil, nil
+end
+
 function M.connect(callback)
-  local socket = config.get().socket_path
+  local addr = config.get().socket_path
   if not vim.loop then
     vim.notify("Deck: vim.loop / vim.uv not available", vim.log.levels.ERROR)
     return false
   end
 
-  -- Check if socket exists
-  local stat = vim.loop.fs_stat(socket)
-  if not stat then
+  local host, port = parseHostPort(addr)
+  if not host or not port then
     vim.schedule(function()
       vim.notify(
-        "Deck backend not running. Start with: deck-tui",
-        vim.log.levels.WARN
+        "Deck: Invalid RPC address: " .. tostring(addr),
+        vim.log.levels.ERROR
       )
       if callback then
         callback(false)
@@ -48,12 +55,12 @@ function M.connect(callback)
     return false
   end
 
-  client_pipe = uv.new_pipe(false)
-  uv.pipe_connect(client_pipe, socket, function(err)
+  client_handle = uv.new_tcp()
+  uv.tcp_connect(client_handle, host, port, function(err)
     if err then
       vim.schedule(function()
         vim.notify(
-          "Deck: Failed to connect to " .. socket .. ": " .. err,
+          "Deck: Failed to connect to " .. addr .. ": " .. err,
           vim.log.levels.ERROR
         )
         if callback then
@@ -63,7 +70,7 @@ function M.connect(callback)
       return
     end
 
-    uv.read_start(client_pipe, function(read_err, data)
+    uv.read_start(client_handle, function(read_err, data)
       if read_err then
         vim.schedule(function()
           vim.notify("Deck: RPC read error: " .. read_err, vim.log.levels.ERROR)
@@ -88,11 +95,11 @@ function M.connect(callback)
 end
 
 function M.is_connected()
-  return client_pipe ~= nil
+  return client_handle ~= nil
 end
 
 function M.send(req_type, payload, cb)
-  if not client_pipe then
+  if not client_handle then
     vim.schedule(function()
       vim.notify("Deck: Not connected to backend", vim.log.levels.ERROR)
       if cb then
@@ -112,7 +119,7 @@ function M.send(req_type, payload, cb)
     payload = payload,
   }) .. "\n"
 
-  local ok, write_err = pcall(uv.write, client_pipe, req)
+  local ok, write_err = pcall(uv.write, client_handle, req)
   if not ok then
     pending[id] = nil
     vim.schedule(function()
@@ -125,9 +132,9 @@ function M.send(req_type, payload, cb)
 end
 
 function M.disconnect()
-  if client_pipe then
-    uv.close(client_pipe)
-    client_pipe = nil
+  if client_handle then
+    uv.close(client_handle)
+    client_handle = nil
   end
   pending = {}
   buf = ""

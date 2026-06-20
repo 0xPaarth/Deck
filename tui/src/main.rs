@@ -4,7 +4,7 @@ mod ui;
 mod widgets;
 
 use app::{App, AppState};
-use backend::rpc::server::{run_server, socket_path};
+use backend::rpc::server::run_server;
 use crossterm::{
     event::{Event, EventStream, KeyCode, KeyEventKind, KeyModifiers},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = App::new();
 
     // Connect RPC client
-    match backend::rpc::client::RpcClient::connect(socket_path()).await {
+    match backend::rpc::client::RpcClient::connect().await {
         Ok(client) => {
             app.rpc_client = Some(client);
             app.state = AppState::Ready;

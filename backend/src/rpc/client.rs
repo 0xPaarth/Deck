@@ -1,18 +1,18 @@
 use crate::rpc::protocol::{RpcRequest, RpcResponse};
-use std::path::Path;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::UnixStream;
+use crate::rpc::server::RPC_ADDR;
+use tokio::io::{split, AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpStream;
 
 pub struct RpcClient {
-    reader: BufReader<tokio::net::unix::OwnedReadHalf>,
-    writer: tokio::net::unix::OwnedWriteHalf,
+    reader: BufReader<tokio::io::ReadHalf<TcpStream>>,
+    writer: tokio::io::WriteHalf<TcpStream>,
     next_id: u64,
 }
 
 impl RpcClient {
-    pub async fn connect(path: impl AsRef<Path>) -> Result<Self, Box<dyn std::error::Error>> {
-        let stream = UnixStream::connect(path).await?;
-        let (reader, writer) = stream.into_split();
+    pub async fn connect() -> Result<Self, Box<dyn std::error::Error>> {
+        let stream = TcpStream::connect(RPC_ADDR).await?;
+        let (reader, writer) = split(stream);
         Ok(Self {
             reader: BufReader::new(reader),
             writer,

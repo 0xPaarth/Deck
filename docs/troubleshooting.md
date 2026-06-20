@@ -46,16 +46,15 @@ For CSES, use the numeric task ID (e.g., `1621`).
 
 ### "Connection refused" (RPC)
 
-The Unix socket at `~/.cache/deck/socket` isn't available. Check:
+The TCP server at `127.0.0.1:4647` isn't responding. Check:
 
 ```bash
-ls -la ~/.cache/deck/socket
+lsof -i :4647
 ```
 
-If missing, restart the backend:
+If nothing is listening, restart the backend:
 
 ```bash
-rm -f ~/.cache/deck/socket
 deck tui
 ```
 
@@ -131,13 +130,12 @@ Then reload the extension at `chrome://extensions/`.
 
 ---
 
-### "Socket already in use"
+### "Port already in use"
 
-A stale socket file exists. Remove it:
+Another process is using `127.0.0.1:4647`. Find and kill it:
 
 ```bash
-rm -f ~/.cache/deck/socket
-lsof ~/.cache/deck/socket 2>/dev/null || true
+lsof -ti :4647 | xargs kill -9 2>/dev/null || true
 ```
 
 ---
@@ -149,7 +147,6 @@ SQLite might be locked if two processes access it simultaneously. Restart both t
 ```bash
 pkill -f deck-tui
 pkill -f deck
-rm -f ~/.cache/deck/socket
 ```
 
 ---

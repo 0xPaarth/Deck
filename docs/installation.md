@@ -68,7 +68,7 @@ Requires Windows 10/11. The binary is `deck.exe`. Add `%USERPROFILE%\.deck\bin` 
     config = function()
         require("deck").setup({
             default_language = "cpp",
-            socket_path = vim.fn.expand("~/.cache/deck/socket"),
+            socket_path = "127.0.0.1:4647",
         })
     end,
 }

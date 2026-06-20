@@ -34,7 +34,7 @@ url = ""                      # e.g., "git@github.com:user/cp-solutions.git"
 name = "origin"
 
 [rpc]
-socket_path = "~/.cache/deck/socket"
+socket_path = "127.0.0.1:4647"
 bind_address = "localhost"
 port = 4646                   # HTTP port for browser extension
 

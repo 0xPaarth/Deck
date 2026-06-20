@@ -52,7 +52,7 @@ This creates:
 - `~/.deck/repo/` — Git repository for auto-commits
 - `~/.deck/config.toml` — Your configuration
 - `~/.cache/deck/deck.db` — SQLite database
-- `~/.cache/deck/socket` — RPC socket
+- `127.0.0.1:4647` — RPC TCP server
 
 ---
 

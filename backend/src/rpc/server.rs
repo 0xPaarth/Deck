@@ -7,34 +7,14 @@ use crate::rpc::protocol::{
 };
 use crate::team::{create_team, get_team_status, join_team};
 use chrono::Datelike;
-use std::path::PathBuf;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::{UnixListener, UnixStream};
+use tokio::io::{split, AsyncBufReadExt, AsyncWriteExt, BufReader, ReadHalf, WriteHalf};
+use tokio::net::{TcpListener, TcpStream};
 
-pub fn socket_path() -> PathBuf {
-    dirs::cache_dir()
-        .unwrap_or_else(|| std::env::temp_dir().into())
-        .join("deck")
-        .join("socket")
-}
-
-async fn ensure_socket_dir() {
-    if let Some(parent) = socket_path().parent() {
-        let _ = tokio::fs::create_dir_all(parent).await;
-    }
-}
+pub const RPC_ADDR: &str = "127.0.0.1:4647";
 
 pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
-    ensure_socket_dir().await;
-    let path = socket_path();
-
-    // Remove stale socket
-    if path.exists() {
-        let _ = tokio::fs::remove_file(&path).await;
-    }
-
-    let listener = UnixListener::bind(&path)?;
-    println!("[RPC] Server listening on {:?}", path);
+    let listener = TcpListener::bind(RPC_ADDR).await?;
+    println!("[RPC] Server listening on {}", RPC_ADDR);
 
     loop {
         let (stream, _) = listener.accept().await?;
@@ -42,8 +22,8 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-async fn handle_connection(stream: UnixStream) {
-    let (reader, mut writer) = stream.into_split();
+async fn handle_connection(stream: TcpStream) {
+    let (reader, mut writer): (ReadHalf<TcpStream>, WriteHalf<TcpStream>) = split(stream);
     let mut lines = BufReader::new(reader).lines();
 
     while let Ok(Some(line)) = lines.next_line().await {
@@ -211,9 +191,9 @@ async fn handle_get_team_status(
 }
 
 async fn handle_share_solution(
-    req: RpcRequest,
+    _req: RpcRequest,
 ) -> Result<RpcResponse, Box<dyn std::error::Error>> {
-    Ok(RpcResponse::ok(req.id, "Shared", serde_json::json!({ "shared": true })))
+    Ok(RpcResponse::ok(_req.id, "Shared", serde_json::json!({ "shared": true })))
 }
 
 async fn handle_get_contests(
