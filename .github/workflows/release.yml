@@ -3,123 +3,143 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - 'v*'
   workflow_dispatch:
 
 jobs:
   build-binaries:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact: deck-linux-x64
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact: deck-linux-arm64
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact: deck-darwin-x64
+            artifact: deck-darwin-x64.tar.gz
+            ext: ''
+          
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact: deck-darwin-arm64
+            artifact: deck-darwin-arm64.tar.gz
+            ext: ''
+          
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: deck-linux-x64.tar.gz
+            ext: ''
+          
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact: deck-linux-arm64.tar.gz
+            ext: ''
+          
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: deck-windows-x64
-          - os: windows-latest
-            target: aarch64-pc-windows-msvc
-            artifact: deck-windows-arm64
-    runs-on: ${{ matrix.os }}
+            artifact: deck-windows-x64.zip
+            ext: '.exe'
+    
     steps:
-      - uses: actions/checkout@v4
-
+      - name: Checkout
+        uses: actions/checkout@v4
+      
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rs/toolchain@v1
         with:
-          targets: ${{ matrix.target }}
-
-      - name: Install cross-compilation dependencies (Linux ARM)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+      
+      - name: Install Dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Build binary
+          sudo apt-get install -y \
+            pkg-config \
+            libssl-dev \
+            build-essential \
+            gcc-aarch64-linux-gnu  # For ARM64 build
+      
+      - name: Install Dependencies (macOS)
+        if: matrix.os == 'macos-latest'
         run: |
-          cargo build --release --target ${{ matrix.target }}
-
+          brew install openssl
+          echo "OPENSSL_DIR=$(brew --prefix openssl)" >> $GITHUB_ENV
+      
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+      
       - name: Package (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          mkdir -p dist/${{ matrix.artifact }}
-          cp target/${{ matrix.target }}/release/deck dist/${{ matrix.artifact }}/
-          cp target/${{ matrix.target }}/release/deck-tui dist/${{ matrix.artifact }}/
-          cd dist
-          tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}
-          mv ${{ matrix.artifact }}.tar.gz ../
-
+          cd target/${{ matrix.target }}/release
+          tar -czf ${{ matrix.artifact }} deck deck-tui
+          mv ${{ matrix.artifact }} ../../../
+      
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          New-Item -ItemType Directory -Force -Path "dist\${{ matrix.artifact }}"
-          Copy-Item "target\${{ matrix.target }}\release\deck.exe" "dist\${{ matrix.artifact }}\"
-          Copy-Item "target\${{ matrix.target }}\release\deck-tui.exe" "dist\${{ matrix.artifact }}\"
-          Compress-Archive -Path "dist\${{ matrix.artifact }}" -DestinationPath "${{ matrix.artifact }}.zip"
-
-      - name: Upload artifact
+          cd target/${{ matrix.target }}/release
+          7z a ${{ matrix.artifact }} deck.exe deck-tui.exe
+          mv ${{ matrix.artifact }} ../../../
+      
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}.*
+          path: ${{ matrix.artifact }}
+      
+      - name: Generate Checksum
+        run: |
+          if [ -f "${{ matrix.artifact }}" ]; then
+            shasum -a 256 ${{ matrix.artifact }} >> checksums.txt
+          fi
+        shell: bash
+      
+      - name: Upload Checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: checksums.txt
 
   create-release:
+    name: Create Release
     needs: build-binaries
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all artifacts
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          merge-multiple: true
-
-      - name: Generate checksums
-        run: |
-          cd artifacts
-          sha256sum * > ../checksums.txt
-
-      - name: Create GitHub Release
+      
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            artifacts/*
-            checksums.txt
+          files: artifacts/**/*
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-npm:
+    name: Publish to NPM
     needs: create-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
+      - name: Checkout
+        uses: actions/checkout@v4
+      
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org/
-
-      - name: Update package version
-        working-directory: packages/npm
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Publish
         run: |
-          TAG=${{ github.ref_name }}
-          VERSION=${TAG#v}
-          npm version $VERSION --no-git-tag-version
-
-      - name: Publish to NPM
-        working-directory: packages/npm
-        run: npm publish --access public
+          cd packages/npm
+          npm ci
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
