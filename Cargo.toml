@@ -1,0 +1,14 @@
+[workspace]
+members = ["backend", "tui"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Deck Contributors <deck@deck.dev>"]
+description = "Terminal-first competitive programming platform with Neovim integration, Git sync, and team collaboration"
+repository = "https://github.com/deck/deck"
+license = "MIT"
+keywords = ["competitive-programming", "codeforces", "terminal", "neovim", "tui", "git", "team"]
+categories = ["command-line-utilities", "development-tools"]
+homepage = "https://deck.dev"

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deck Companion</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      min-height: 240px;
+      background: #0f0f1a;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #1e1e2e;
+    }
+    .header img {
+      width: 24px;
+      height: 24px;
+    }
+    .header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e94560;
+    }
+    .content { padding: 12px 16px; }
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #555;
+      flex-shrink: 0;
+    }
+    .dot.connected { background: #4ade80; box-shadow: 0 0 4px #4ade80; }
+    .dot.disconnected { background: #ef4444; box-shadow: 0 0 4px #ef4444; }
+    .status-text { color: #a0a0b0; }
+    .status-text.connected { color: #4ade80; }
+    .status-text.disconnected { color: #ef4444; }
+    .problem-card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a3e;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .problem-card.visible { display: block; }
+    .problem-card .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #8899aa;
+      margin-bottom: 4px;
+    }
+    .problem-card .title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .problem-card .meta {
+      font-size: 11px;
+      color: #8899aa;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-bottom: 8px;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { opacity: 0.7; }
+    .btn.primary {
+      background: #e94560;
+      color: #fff;
+    }
+    .btn.primary:disabled {
+      background: #3a1a20;
+      color: #777;
+      cursor: not-allowed;
+    }
+    .btn.secondary {
+      background: #2a2a3e;
+      color: #ccc;
+    }
+    .footer {
+      padding: 8px 16px;
+      border-top: 1px solid #1e1e2e;
+      text-align: center;
+    }
+    .footer a {
+      color: #8899aa;
+      font-size: 11px;
+      text-decoration: none;
+    }
+    .footer a:hover { color: #e94560; }
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #555;
+      border-top-color: #e94560;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #fff;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    .no-problem {
+      text-align: center;
+      padding: 16px 0;
+      color: #667788;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="../icons/icon48.png" alt="Deck">
+    <h1>Deck Companion</h1>
+  </div>
+
+  <div class="content">
+    <div class="status-row">
+      <div id="status-dot" class="dot disconnected"></div>
+      <span id="status-text" class="status-text disconnected">Checking backend...</span>
+    </div>
+
+    <div id="problem-card" class="problem-card">
+      <div class="label">Current Problem</div>
+      <div id="problem-title" class="title">—</div>
+      <div id="problem-meta" class="meta">—</div>
+    </div>
+
+    <div id="no-problem" class="no-problem">
+      No problem detected on this page.
+    </div>
+
+    <button id="capture-btn" class="btn primary" disabled>
+      Capture Problem
+    </button>
+    <button id="open-deck-btn" class="btn secondary">
+      Open Deck App
+    </button>
+  </div>
+
+  <div class="footer">
+    <a href="https://deck.dev" target="_blank">deck.dev</a>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

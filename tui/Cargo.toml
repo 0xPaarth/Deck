@@ -1,0 +1,19 @@
+[package]
+name = "tui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ratatui = { version = "0.29", features = ["crossterm"] }
+crossterm = { version = "0.28", features = ["event-stream"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+futures = "0.3"
+backend = { path = "../backend" }
+chrono = "0.4"
+dirs = "5"
+
+[[bin]]
+name = "deck-tui"
+path = "src/main.rs"
