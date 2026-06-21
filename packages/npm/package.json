@@ -7,7 +7,8 @@
   },
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
-    "preuninstall": "node scripts/preuninstall.js"
+    "preuninstall": "node scripts/preuninstall.js",
+    "prepublishOnly": "echo '📦 Skipping postinstall for publish' && exit 0"
   },
   "keywords": [
     "competitive-programming",
@@ -20,21 +21,67 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/deck/deck"
+    "url": "https://github.com/0xPaarth/Deck"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/deck/deck/issues"
+    "url": "https://github.com/0xPaarth/Deck/issues"
   },
   "homepage": "https://deck.dev",
   "files": [
-    "bin/",
-    "scripts/",
+    "bin",
+    "scripts",
     "README.md"
   ],
   "engines": {
     "node": ">=14.0.0"
   },
   "os": ["darwin", "linux", "win32"],
-  "cpu": ["x64", "arm64"]
+  "cpu": ["x64", "arm64"],
+  "publishConfig": {
+    "access": "public"
+  }
+}{
+  "name": "@0xpaarth/deck",
+  "version": "0.1.0",
+  "description": "Terminal-first competitive programming platform with Neovim integration, Git sync, and team collaboration",
+  "bin": {
+    "deck": "./bin/deck.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "preuninstall": "node scripts/preuninstall.js",
+    "prepublishOnly": "echo '📦 Skipping postinstall for publish' && exit 0"
+  },
+  "keywords": [
+    "competitive-programming",
+    "codeforces",
+    "terminal",
+    "neovim",
+    "tui",
+    "git",
+    "team"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xPaarth/Deck"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/0xPaarth/Deck/issues"
+  },
+  "homepage": "https://deck.dev",
+  "files": [
+    "bin",
+    "scripts",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": ["darwin", "linux", "win32"],
+  "cpu": ["x64", "arm64"],
+  "publishConfig": {
+    "access": "public"
+  }
 }

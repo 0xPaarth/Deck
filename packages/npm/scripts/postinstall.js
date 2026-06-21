@@ -1,3 +1,9 @@
+if (process.env.SKIP_POSTINSTALL || process.env.CI) {
+    console.log('📦 Skipping binary download (CI/development environment)');
+    console.log('ℹ️  Binary will be downloaded when users install the package');
+    console.log('🔧 Build from source with: cargo build --release');
+    process.exit(0);
+}
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
