@@ -1,12 +1,5 @@
 #!/usr/bin/env node
 
-const https = require("https");
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-const crypto = require("crypto");
-const { execSync } = require("child_process");
-
 // Skip postinstall in CI or if SKIP_POSTINSTALL is set
 if (process.env.SKIP_POSTINSTALL || process.env.CI) {
     console.log('📦 Skipping binary download (CI/development environment)');
@@ -14,6 +7,13 @@ if (process.env.SKIP_POSTINSTALL || process.env.CI) {
     console.log('🔧 Build from source with: cargo build --release');
     process.exit(0);
 }
+
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+const crypto = require("crypto");
+const { execSync } = require("child_process");
 
 const VERSION = require("../package.json").version;
 const REPO = "0xPaarth/Deck";
@@ -116,7 +116,6 @@ async function install() {
         const destDir = path.join(os.homedir(), ".deck", "bin");
         const destPath = path.join(destDir, platform === "windows" ? "deck.exe" : "deck");
         
-        // Create directory
         if (!fs.existsSync(destDir)) {
             fs.mkdirSync(destDir, { recursive: true });
         }
@@ -124,13 +123,11 @@ async function install() {
         console.log(`📦 Downloading Deck binary for ${platform}-${arch}...`);
         console.log(`🔗 ${url}`);
         
-        // Download
         const tempFile = path.join(destDir, artifact);
         await downloadFile(url, tempFile);
         
         console.log("✅ Download complete");
         
-        // Verify checksum
         console.log("🔍 Verifying checksum...");
         const checksums = await fetchChecksums();
         const expectedHash = checksums[artifact];
@@ -143,22 +140,17 @@ async function install() {
             console.log("⚠️ No checksum found, skipping verification");
         }
         
-        // Extract
         console.log("📦 Extracting...");
         if (platform === "windows") {
-            // Extract zip using PowerShell
             execSync(`powershell -Command "Expand-Archive -Path '${tempFile}' -DestinationPath '${destDir}' -Force"`, { stdio: "inherit" });
         } else {
-            // Extract tar.gz
             execSync(`tar -xzf "${tempFile}" -C "${destDir}"`, { stdio: "inherit" });
         }
         
-        // Make executable (Unix)
         if (platform !== "windows") {
             fs.chmodSync(destPath, 0o755);
         }
         
-        // Clean up temp file
         if (fs.existsSync(tempFile)) {
             fs.unlinkSync(tempFile);
         }
